@@ -2,87 +2,114 @@
 // OBTENCIÓN DE PARÁMETROS DE SENSORES PARA INVERNADERO 
 // Autores: Luís Macías y Jovany Hernández
 
-#include "DHT.h"
-#include<DS3231.h>
+bool flag;
+#include <DHT.h>
+#include <RTClib.h>
 #include<Wire.h>
+#include <LiquidCrystal_I2C.h>
 
-#define DHTPIN 2     // Digital pin connected to the DHT sensor
-#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+#define DHTPIN 4   
+#define DHTTYPE DHT11   // DHT 22  (AM2302), AM2321
 
 DHT dht(DHTPIN, DHTTYPE);
-DS3231 Clock;
-byte year, month, date, DoW, hour, minute, second;
+RTC_DS1307 rtc;
 
-void InitDatetime(int year, int month, int day, int hour, int minute, int second, bool is24H);
+//Crear el objeto lcd  dirección  0x3F y 16 columnas x 2 filas
+LiquidCrystal_I2C lcd(0x3F,16,2);
+
+void SerialPrint(float h, float t, float f);
+void LCDPrint(bool esBienvenida, bool flag, float h, float t, float f);
 
 void setup() {
+  flag = false;
   Serial.begin(9600);
-  Serial.println(F("DHTxx test!"));
   dht.begin();
   Wire.begin();
-  InitDatetime(20,3,6,8,0,0,false);
+  lcd.init();
+  rtc.begin();
+  LCDPrint(true, false, 0, 0, 0);
 }
 
-void InitDatetime(int year, int month, int day, int hour, int minute, int second, bool is24H)
+void SerialPrint(float h, float t, float f)
 {
-  Clock.setClockMode(!is24H); 
-Clock.setYear((byte)year);
-Clock.setMonth((byte)month);
-Clock.setDate((byte)day);
-Clock.setHour((byte)hour);
-Clock.setMinute((byte)minute);
-Clock.setSecond((byte)second);
+  DateTime datetime = rtc.now();
+  Serial.print(datetime.day(), DEC);
+  Serial.print("/");
+  Serial.print(datetime.month(), DEC);
+  Serial.print("/");
+  Serial.print(datetime.year(), DEC);
+  Serial.print(" ");
+  Serial.print(datetime.hour(), DEC);
+  Serial.print(":");
+  Serial.print(datetime.minute(), DEC);
+  Serial.print(":");
+  Serial.println(datetime.second(), DEC);
+
+  Serial.print("Humedad: ");
+  Serial.print(h);
+  Serial.print("% ");
+
+  Serial.print("Temperatura: ");
+  Serial.print(t);
+  Serial.print(F("°C "));
+  Serial.println(f);
+}
+
+void LCDPrint(bool esBienvenida, bool flag, float h, float t, float f){
+  lcd.clear();
+  if(!esBienvenida){
+    DateTime datetime = rtc.now();
+    lcd.setCursor(0, 0);
+    lcd.print(datetime.day());
+    lcd.print("/");
+    lcd.print(datetime.month());
+    lcd.print("/");
+    lcd.print(datetime.year());
+    lcd.print(" ");
+    lcd.print(datetime.hour());
+    lcd.print(":");
+    lcd.print(datetime.minute());
+
+    lcd.setCursor(0, 1);
+    if(flag){
+      lcd.print("H: ");
+      lcd.print(h);
+      lcd.print("%");
+    }
+    else
+    {
+      lcd.print("T: ");
+      lcd.print(t);
+      lcd.print(" C"); 
+    }
+  }
+  else
+  {
+    lcd.setCursor(0,0);
+    lcd.print("HOLA MUNDO CRUEL");
+    lcd.setCursor(0,1);
+    lcd.print("    Y DESPIADADO :)");
+    delay(2000);
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    delay(2000);
+    lcd.clear();
+  } 
 }
 
 void loop() {
-  // Wait a few seconds between measurements.
   delay(2000);
-  
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  flag = !flag;
   float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
   float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
   float f = dht.readTemperature(true);
 
-
-  // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println(F("Failed to read from DHT sensor!"));
-    return;
+    h = 0;
+    t = 0;
+    f = 0;
   }
 
-  // Compute heat index in Fahrenheit (the default)
-  float hif = dht.computeHeatIndex(f, h);
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
-
-   //Se rescata la información
-Clock.getTime(year, month, date, DoW, hour, minute, second);
-//Se imprime
-Serial.print(date, DEC);
-Serial.print("/");
-Serial.print(month, DEC);
-Serial.print("/");
-Serial.print(year, DEC);
-Serial.print("  ");
-Serial.print(hour, DEC);
-Serial.print(":");
-Serial.print(minute, DEC);
-Serial.print(":");
-Serial.println(second, DEC);
-
-  Serial.print(F("Humidity: "));
-  Serial.print(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.print(F("°C "));
-  Serial.print(f);
-  Serial.print(F("°F  Heat index: "));
-  Serial.print(hic);
-  Serial.print(F("°C "));
-  Serial.print(hif);
-  Serial.println(F("°F"));
-
+  SerialPrint(h, t, f);
+  LCDPrint(false, flag, h, t, f);
 }
