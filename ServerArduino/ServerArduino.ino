@@ -87,7 +87,7 @@ void loop() {
   float t = dht.readTemperature();
   int valorHumedad = map(analogRead(SENSOR_HS), 0, 1023, 100, 0);
 
-  if(t>24.5){
+  if(t>23){
     digitalWrite(rele, HIGH); // turn the LED on (HIGH is the voltage level)
   }
   else {
@@ -112,7 +112,7 @@ void loop() {
   lcd.print(valorHumedad);
   lcd.print("%");
 
-  if(analogRead(A0) <= 300){
+  /*if(analogRead(A0) <= 300){
     lcd.clear();
     lcd.print("ATENCION");
     lcd.setCursor(0,1);
@@ -124,7 +124,7 @@ void loop() {
   else
   {
     
-  }
+  }*/
   
   EthernetClient client = server.available();
   if (client) {
