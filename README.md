@@ -11,6 +11,6 @@ Se espera que este obtenga diferentes parámetros como humedad y temperatura par
 Equipo: Luís Macías y Jovany Hernández.
 
 
-Publicado el día: 5 de marzo de 2020
+Publicado el día: 5 de Junio de 2020
 
 
